@@ -39,12 +39,9 @@ async def auto_fill(
             print(f"\n{'='*60}")
             print(f"📝 Processing Section: {section['sectionName']}")
             print(f"{'='*60}")
-
             # 3. Collect all fields AND track their exact locations
-            # ✅ FIX: Process fields even without explicit prompts
             fields_to_process = []
-            field_locations = []  # ✅ CRITICAL FIX: Store exact location of each field
-
+            field_locations = []  
             for group_idx, group in enumerate(section["inputFields"]):
                 for field_idx, field in enumerate(group["fields"]):
                     # Generate prompt if missing
@@ -88,8 +85,6 @@ async def auto_fill(
                 )
 
                 print(f"\n📝 Mapping extracted values back to form...")
-
-                # 5. ✅ CRITICAL FIX: Map results back to ORIGINAL data structure
                 for i, location in enumerate(field_locations):
                     field = fields_to_process[i]
                     val = extracted_values.get(str(i), "Nil")
@@ -187,8 +182,8 @@ async def auto_fill(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
-#--------------------------------------------------------------------
-# endpoint for the pdf downloader
+
+# ----endpoint for the pdf downloader-----
 
 @router.post("/generate-pdf")
 async def generate_pdf(schema: str = Form(...)):
