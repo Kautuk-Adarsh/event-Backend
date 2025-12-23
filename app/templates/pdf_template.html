@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page { size: A4; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; }
+        .header { background-color: black; color: white; padding: 20px; position: relative; border-radius: 5px 5px 0 0; }
+        .header h1 { margin: 0; font-size: 22pt; }
+        .header .highlight { background-color: #00ffaa; color: black; padding: 2px 5px; }
+        
+        .top-info { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .top-info td { border: 1px solid black; padding: 8px; font-weight: bold; width: 50%; }
+
+        .section-header { background-color: #f0f0f0; padding: 5px 10px; font-weight: bold; border: 1px solid black; margin-top: 15px; border-bottom: none; }
+        
+        table.data-table { width: 100%; border-collapse: collapse; }
+        table.data-table td { border: 1px solid #ccc; padding: 6px; vertical-align: top; }
+        .label-col { width: 30%; font-weight: bold; background-color: #fafafa; }
+        
+        .sub-group { font-weight: bold; color: #0066ff; border-bottom: 1px solid #0066ff; margin-top: 10px; margin-bottom: 5px; font-size: 9pt; }
+        ul { margin: 0; padding-left: 15px; }
+        .footer { text-align: center; font-size: 8pt; color: #999; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>GPJ Input Brief</h1>
+        <span class="highlight">For IBM</span>
+    </div>
+
+    <table class="top-info">
+        <tr>
+            <td>Project Name: <span style="font-weight: normal;">{{ data.get('Project Name', 'N/A') }}</span></td>
+            <td>Project Type: <span style="font-weight: normal;">{{ data.get('Project Type', 'N/A') }}</span></td>
+        </tr>
+    </table>
+
+    {% for section in sections %}
+    <div class="section-header">{{ loop.index }}. {{ section.sectionName }}</div>
+    <table class="data-table">
+        {% for group in section.inputFields %}
+            {% if group.fieldsHeading %}
+            <tr>
+                <td colspan="2" class="sub-group">{{ group.fieldsHeading | upper }}</td>
+            </tr>
+            {% endif %}
+            
+            {% for field in group.fields %}
+            <tr>
+                <td class="label-col">{{ field.inputName or "Details" }}</td>
+                <td>
+                    {% if field.inputValue is iterable and field.inputValue is not string %}
+                        {% if field.inputValue is mapping %}
+                            {{ field.inputValue.get('Name', '') }} 
+                            {% if field.inputValue.get('Email') %}({{ field.inputValue.Email }}){% endif %}
+                        {% else %}
+                            <ul>
+                            {% for item in field.inputValue %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% else %}
+                        {{ field.inputValue if field.inputValue and field.inputValue != "Nil" else "" }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+    {% endfor %}
+
+    <div class="footer">Confidential - Generated for GPJ & IBM Automation Tool</div>
+</body>
+</html>

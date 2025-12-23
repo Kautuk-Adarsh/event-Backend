@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+langchain
+langchain-community
+langchain-google-genai
+langchain-chroma
+langchain-text-splitters
+chromadb
+jq
+pypdf
+docx2txt
+unstructured[pptx]
+jinja2 xhtml2pdf
+python-dotenv
