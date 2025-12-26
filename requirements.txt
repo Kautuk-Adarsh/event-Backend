@@ -6,14 +6,14 @@ langchain-community
 langchain-groq
 langchain-huggingface
 sentence-transformers
-langchain-google-genai
 langchain-chroma
 langchain-text-splitters
 chromadb
-jq
 pypdf
 docx2txt
-unstructured[pptx]
+unstructured
+python-pptx
+python-magic
 jinja2
 xhtml2pdf
 python-dotenv
