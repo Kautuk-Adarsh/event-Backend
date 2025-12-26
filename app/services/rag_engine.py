@@ -34,7 +34,7 @@ class RAGEngine:
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
         self.llm = ChatGroq(
-            model="openai/gpt-oss-20b",
+            model="openai/gpt-oss-120b",
             temperature=0,
             groq_api_key=groq_key,
             max_retries=3
