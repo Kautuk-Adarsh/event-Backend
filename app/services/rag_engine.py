@@ -4,6 +4,7 @@ import re
 import time
 from typing import List, Optional, Dict
 from dotenv import load_dotenv
+from pydantic import SecretStr
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
@@ -36,7 +37,7 @@ class RAGEngine:
         self.llm = ChatGroq(
             model="openai/gpt-oss-20b",
             temperature=0,
-            groq_api_key=groq_key,
+            api_key=SecretStr(groq_key),
             max_retries=3
         )
 
@@ -45,7 +46,7 @@ class RAGEngine:
         self.processed_files = []
         self.json_content = None  # Store full JSON if available
 
-        print("✓ RAG Engine initialized with Groq (GPT-OSS 120B)")
+        print("✓ RAG Engine initialized with Groq (GPT-OSS 20B)")
 
     def ingest_documents(self, file_paths: List[str]):
         """Ingest multiple file types with JSON optimization"""
@@ -53,7 +54,7 @@ class RAGEngine:
         self.processed_files = []
         self.json_content = None
 
-        print(f"\n📂 Processing {len(file_paths)} file(s)...")
+        print(f"\n Processing {len(file_paths)} file(s)...")
         print("=" * 60)
 
         for path in file_paths:
@@ -190,7 +191,7 @@ class RAGEngine:
         batch_size = 3
         total_batches = (len(fields) + batch_size - 1) // batch_size
 
-        print(f"\n🤖 Extracting {len(fields)} fields in {total_batches} batches...")
+        print(f"\ Extracting {len(fields)} fields in {total_batches} batches...")
 
         for i in range(0, len(fields), batch_size):
             batch = fields[i:i + batch_size]
@@ -219,7 +220,7 @@ class RAGEngine:
 
         return results
 
-    def _process_micro_batch(self, section_name: str, fields: List[Dict], start_idx: int) -> Dict[str, str]:
+    def _process_micro_batch(self, section_name: str, fields: List[Dict], start_idx: int) -> Dict[str, str]: # type: ignore
         """Process a small batch of fields with localized error handling and defined prompts."""
         max_retries = 3
 
@@ -236,10 +237,10 @@ class RAGEngine:
                 context = self._sanitize_text(context)
 
                 # Limit context length
-                max_context_chars = 6000  # Increased for JSON
-                if len(context) > max_context_chars:
-                    half = max_context_chars // 2
-                    context = context[:half] + "... [middle content omitted] ..." + context[-half:]
+                # max_context_chars = 6000  # Increased for JSON
+                # if len(context) > max_context_chars:
+                #     half = max_context_chars // 2
+                #     context = context[:half] + "... [middle content omitted] ..." + context[-half:]
 
                 # Create tasks using the start_idx to maintain unique IDs
                 tasks = []
@@ -304,7 +305,21 @@ Return the extracted data as a JSON object:
                 ])
 
                 # Safe JSON Parsing
-                content = response.content.strip()
+                content = response.content
+                # Normalize different response types to a string
+                if isinstance(content, list):
+                    # join list elements into a single string
+                    try:
+                        content = "\n".join([c if isinstance(c, str) else json.dumps(c) for c in content])
+                    except Exception:
+                        content = json.dumps(content)
+                elif isinstance(content, dict):
+                    content = json.dumps(content)
+
+                if not isinstance(content, str):
+                    content = str(content)
+
+                content = content.strip()
                 try:
                     # Remove potential markdown formatting
                     if "```json" in content:
@@ -369,32 +384,36 @@ Return the extracted data as a JSON object:
         return self._json_to_text(relevant_data)
 
     def _get_smart_context(self, section_name: str, fields: List[Dict]) -> str:
-        """Vector search fallback for non-JSON files"""
-        all_chunks = []
-        seen_content = set()
+            """Vector search fallback for non-JSON files"""
+            
+            # Guard clause: Prevent execution if the vector DB failed to initialize
+            if not self.vector_db:
+                return "No readable documents or context available."
 
-        # Get chunks for section and fields
-        queries = [section_name] + [f"{f.get('temp_id_name', '')} {f.get('prompt', '')}" for f in fields]
+            all_chunks = []
+            seen_content = set()
+            queries = [section_name] + [f"{f.get('temp_id_name', '')} {f.get('prompt', '')}" for f in fields]
+            max_chars = 25000  
+            current_chars = 0
 
-        for query in queries[:5]:  # Limit queries
-            if query in self.context_cache:
-                chunks = self.context_cache[query]
-            else:
-                chunks = self.vector_db.similarity_search(query, k=2)
-                self.context_cache[query] = chunks
+            for query in queries:
+                if query in self.context_cache:
+                    chunks = self.context_cache[query]
+                else:
+                    chunks = self.vector_db.similarity_search(query, k=3)
+                    self.context_cache[query] = chunks
 
-            for chunk in chunks:
-                content = chunk.page_content
-                if content not in seen_content and content.strip():
-                    all_chunks.append(content)
-                    seen_content.add(content)
-                    if len(all_chunks) >= 6:
-                        break
+                for chunk in chunks:
+                    content = chunk.page_content
+                    if content not in seen_content and content.strip():
+                        if current_chars + len(content) > max_chars:
+                            break
+                        
+                        all_chunks.append(content)
+                        seen_content.add(content)
+                        current_chars += len(content)
 
-            if len(all_chunks) >= 6:
-                break
-
-        return "\n\n---\n\n".join(all_chunks)
+            return "\n\n---\n\n".join(all_chunks)
 
     def _json_to_text(self, json_data, prefix: str = "") -> str:
         """Convert JSON to readable text"""

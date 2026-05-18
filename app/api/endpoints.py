@@ -18,13 +18,7 @@ async def auto_fill(
     schema: str = Form(..., alias="schema"),
     event_name: str = Form(...)
 ):
-    """
-    Auto-fill form fields using RAG engine with FIXED location tracking.
-    
-    This implementation properly tracks field locations and updates the original
-    data structure, fixing the issue where Historical Learnings and Agency 
-    Deliverables were not being filled.
-    """
+   
     try:
         # 1. Save uploaded files and ingest into RAG
         temp_paths = [save_temp_file(f) for f in files]
@@ -37,7 +31,7 @@ async def auto_fill(
         # 2. Process each section
         for section_idx, section in enumerate(data["sections"]):
             print(f"\n{'='*60}")
-            print(f"📝 Processing Section: {section['sectionName']}")
+            print(f" Processing Section: {section['sectionName']}")
             print(f"{'='*60}")
             # 3. Collect all fields AND track their exact locations
             fields_to_process = []
